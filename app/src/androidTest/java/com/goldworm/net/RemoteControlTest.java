@@ -10,7 +10,11 @@ import static org.junit.Assert.*;
 public class RemoteControlTest {
     @Test
     public void start() throws Exception {
+        RemoteControl remoteControl = RemoteControl.getInstance();
+        assertTrue(remoteControl != null);
 
+        remoteControl.start();
+        remoteControl.stop();
     }
 
     @Test
@@ -24,7 +28,6 @@ public class RemoteControlTest {
         String data = "hello";
         remoteControl.send(data.getBytes());
 
-        Thread.sleep(2000);
         remoteControl.stop();
     }
 }

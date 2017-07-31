@@ -1,18 +1,33 @@
 package com.goldworm.net;
 
+import android.text.Selection;
+import android.util.Log;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.WritableByteChannel;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * Created by goldworm on 2017-07-28.
  */
 
 public class RemoteControl {
+    private static final String TAG = "worker";
+
     private static RemoteControl self;
+    private boolean running = false;
     private WorkerThread workerThread;
+    private PacketGenerator packetGenerator = new PacketGenerator();
 
     public static RemoteControl getInstance() {
         if (self == null) {
@@ -26,11 +41,14 @@ public class RemoteControl {
     }
 
     public void start() {
+        running = true;
         workerThread = new WorkerThread();
         workerThread.start();
     }
 
     public void stop() {
+        running = false;
+
         if (workerThread != null) {
             try {
                 workerThread.interrupt();
@@ -39,6 +57,26 @@ public class RemoteControl {
                 e.printStackTrace();
             }
         }
+    }
+
+    public int controlKeyboard(int count, int[] keyCodes) {
+        ByteBuffer buffer = packetGenerator.createKeyboardData(count, keyCodes);
+        if (buffer == null) {
+            return -1;
+        }
+
+        workerThread.asyncSend(buffer);
+        return 0;
+    }
+
+    public int controlMouse(int action, int x, int y) {
+        ByteBuffer buffer = packetGenerator.createControlMouseData(action, x, y);
+        if (buffer == null) {
+            return -1;
+        }
+
+        workerThread.asyncSend(buffer);
+        return 0;
     }
 
     public void send(byte[] data) {
@@ -51,6 +89,7 @@ public class RemoteControl {
     private class WorkerThread extends Thread {
         private DatagramChannel channel;
         LinkedList<ByteBuffer> sendQueue = new LinkedList<>();
+        Selector selector;
 
         public WorkerThread() {
         }
@@ -58,8 +97,12 @@ public class RemoteControl {
         private void init() {
             InetSocketAddress hostAddress = new InetSocketAddress("192.168.0.2", 1106);
             try {
+                selector = Selector.open();
+
                 channel = DatagramChannel.open();
                 channel.connect(hostAddress);
+                channel.configureBlocking(false);
+                channel.register(selector, SelectionKey.OP_READ);
             } catch (IOException e) {
                 e.printStackTrace();
                 channel = null;
@@ -67,15 +110,20 @@ public class RemoteControl {
         }
 
         private void exit() {
-            if (channel != null) {
-                try {
+            try {
+                if (selector != null) {
+                    selector.close();
+                }
+
+                if (channel != null) {
                     channel.disconnect();
                     channel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    channel = null;
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                channel = null;
+                selector = null;
             }
         }
 
@@ -83,40 +131,68 @@ public class RemoteControl {
         public void run() {
             init();
 
-            while (!this.isInterrupted()) {
-                try {
-                    ByteBuffer data = getSendDataFromQueue();
-                    if (data != null) {
-                        channel.write(data);
+            try {
+                while (running && !this.isInterrupted()) {
+                    int readyChannels = selector.select();
+                    if (readyChannels == 0) {
+                        continue;
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
+
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> it = selectedKeys.iterator();
+                    while (it.hasNext()) {
+                        SelectionKey key = it.next();
+                        ByteChannel channel = (ByteChannel)key.channel();
+
+                        if (key.isReadable()) {
+                            Log.d(TAG, "key is readable.");
+                        } else if (key.isWritable()) {
+                            Log.d(TAG, "key is writable.");
+                            doWrite(key, channel);
+                        }
+
+                        it.remove();
+                    }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
             exit();
         }
 
-        private synchronized ByteBuffer getSendDataFromQueue() {
-            if (sendQueue.isEmpty()) {
+        private void doWrite(SelectionKey key, ByteChannel channel) {
+            synchronized (sendQueue) {
+                if (sendQueue.isEmpty()) {
+                    // If there is no bug in this class, the code below shouldn't be called.
+                    key.interestOps(SelectionKey.OP_READ);
+                    return;
+                }
+
                 try {
-                    wait();
-                } catch (InterruptedException e) {
+                    ByteBuffer buffer = sendQueue.removeFirst();
+                    if (buffer != null) {
+                        channel.write(buffer);
+                    }
+                } catch (IOException e) {
                     e.printStackTrace();
+                } finally {
+                    if (sendQueue.isEmpty()) {
+                        key.interestOps(SelectionKey.OP_READ);
+                    }
                 }
             }
-
-            ByteBuffer data = null;
-            if (!sendQueue.isEmpty()) {
-                data = sendQueue.removeFirst();
-            }
-
-            return data;
         }
 
-        public synchronized void asyncSend(ByteBuffer data) {
-            sendQueue.push(data);
-            notify();
+        public void asyncSend(ByteBuffer data) {
+            synchronized (sendQueue) {
+                sendQueue.push(data);
+
+                SelectionKey key = channel.keyFor(selector);
+                key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            }
+
+            selector.wakeup();
         }
     }
 }

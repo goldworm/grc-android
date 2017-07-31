@@ -1,8 +1,10 @@
 package com.goldworm.net;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -13,11 +15,7 @@ import java.nio.ByteOrder;
 public class PacketGenerator {
     public static final int PT_JSON = 100;
 
-    private ByteBuffer byteBuffer;
-
-    public PacketGenerator(int capacity) {
-        byteBuffer = ByteBuffer.allocate(capacity);
-        byteBuffer.order(ByteOrder.BIG_ENDIAN);
+    public PacketGenerator() {
     }
 
     private void setPacketHeader(ByteBuffer byteBuffer, int session) {
@@ -44,16 +42,52 @@ public class PacketGenerator {
             return null;
         }
 
-        int session = 0;
-        byteBuffer = ByteBuffer.allocate(1024);
+        return createJsonData(body);
+    }
 
-        setPacketHeader(byteBuffer, session);
+    public ByteBuffer createKeyboardData(int count, int[] keyCodes) {
+        JSONObject body = new JSONObject();
+
         try {
-            setJsonBody(byteBuffer, body);
-        } catch (Exception e) {
+            body.put("type", Constants.CMD_KEYBOARD);
+
+            JSONArray keys = new JSONArray();
+            for (int i = 0; i < count; i++) {
+                keys.put(keyCodes[i]);
+            }
+            body.put("keyCodes", keys);
+        } catch (JSONException e) {
             e.printStackTrace();
             return null;
         }
+
+        return createJsonData(body);
+    }
+
+    private ByteBuffer createJsonData(JSONObject body) {
+        byte[] data;
+
+        try {
+            data = body.toString().getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return createBinaryData(PT_JSON, data);
+    }
+
+    private ByteBuffer createBinaryData(int payloadType, byte[] data) {
+        int session = 0;
+        int capacity = 3 * 4 + data.length;
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate(capacity);
+        byteBuffer.putInt(session);
+        byteBuffer.putInt(payloadType);
+        byteBuffer.putInt(data.length);
+        byteBuffer.put(data);
+
+        byteBuffer.flip();
 
         return byteBuffer;
     }
