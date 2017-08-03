@@ -1,4 +1,4 @@
-package com.goldworm.net;
+package com.goldworm.proto;
 
 /**
  * Created by goldworm on 2017-07-28.
@@ -75,16 +75,16 @@ public class Constants {
     // Mouse Action
     public static final int ACTION_MOVE = 0x00000001;
     public static final int ACTION_LBUTTONDOWN = 0x00000002;
-    public static final int ACTION_MBUTTONDOWN = 0x00000004;
+    public static final int ACTION_LBUTTONUP = 0x00000004;
+    public static final int ACTION_LBUTTONCLICK = 0x00000006;
     public static final int ACTION_RBUTTONDOWN = 0x00000008;
-    public static final int ACTION_LBUTTONUP = 0x00000020;
+    public static final int ACTION_RBUTTONUP = 0x00000010;
+    public static final int ACTION_RBUTTONCLICK = 0x00000018;
+    public static final int ACTION_MBUTTONDOWN = 0x00000020;
     public static final int ACTION_MBUTTONUP = 0x00000040;
-    public static final int ACTION_RBUTTONUP = 0x00000080;
-    public static final int ACTION_LBUTTONCLICK = 0x00000022;
-    public static final int ACTION_MBUTTONCLICK = 0x00000044;
-    public static final int ACTION_RBUTTONCLICK = 0x00000088;
-    public static final int ACTION_VSCROLL = 0x00001000;
-    public static final int ACTION_HSCROLL = 0x00002000;
+    public static final int ACTION_MBUTTONCLICK = 0x00000060;
+    public static final int ACTION_VSCROLL = 0x00000800;
+    public static final int ACTION_HSCROLL = 0x00001000;
     public static final int ACTION_MAGNIFIER_START = 0x01000000;
     public static final int ACTION_MAGNIFIER_STOP = 0x02000000;
 

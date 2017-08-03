@@ -1,13 +1,11 @@
 package com.goldworm.net;
 
-import android.support.test.runner.AndroidJUnit4;
-import android.util.JsonReader;
+import com.goldworm.proto.Constants;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.nio.ByteBuffer;
 

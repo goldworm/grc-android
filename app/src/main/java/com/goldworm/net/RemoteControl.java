@@ -1,18 +1,14 @@
 package com.goldworm.net;
 
-import android.text.Selection;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
-import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.WritableByteChannel;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
@@ -22,7 +18,7 @@ import java.util.Set;
  */
 
 public class RemoteControl {
-    private static final String TAG = "worker";
+    private static final String TAG = "grc";
 
     private static RemoteControl self;
     private boolean running = false;
@@ -77,6 +73,10 @@ public class RemoteControl {
 
         workerThread.asyncSend(buffer);
         return 0;
+    }
+
+    public void sendText(String text) {
+
     }
 
     public void send(byte[] data) {
@@ -146,6 +146,7 @@ public class RemoteControl {
 
                         if (key.isReadable()) {
                             Log.d(TAG, "key is readable.");
+                            doRead(key, channel);
                         } else if (key.isWritable()) {
                             Log.d(TAG, "key is writable.");
                             doWrite(key, channel);
@@ -159,6 +160,16 @@ public class RemoteControl {
             }
 
             exit();
+        }
+
+        private void doRead(SelectionKey key, ByteChannel channel) {
+            ByteBuffer buffer = ByteBuffer.allocate(1024);
+            try {
+                int size = channel.read(buffer);
+                Log.d(TAG, "read() returns " + size);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         private void doWrite(SelectionKey key, ByteChannel channel) {

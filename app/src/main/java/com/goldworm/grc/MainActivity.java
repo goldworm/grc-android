@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
-import com.goldworm.net.Constants;
 import com.goldworm.net.RemoteControl;
 import com.goldworm.net.VirtualKey;
 

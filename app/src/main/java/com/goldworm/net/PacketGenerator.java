@@ -1,12 +1,13 @@
 package com.goldworm.net;
 
+import com.goldworm.proto.Constants;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 /**
  * Created by goldworm on 2017-07-28.
@@ -82,9 +83,9 @@ public class PacketGenerator {
         int capacity = 3 * 4 + data.length;
 
         ByteBuffer byteBuffer = ByteBuffer.allocate(capacity);
-        byteBuffer.putInt(session);
         byteBuffer.putInt(payloadType);
         byteBuffer.putInt(data.length);
+        byteBuffer.putInt(session);
         byteBuffer.put(data);
 
         byteBuffer.flip();
