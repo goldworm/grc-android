@@ -1,8 +1,9 @@
 package com.goldworm.grc;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.goldworm.net.RemoteControl;
 import com.goldworm.net.VirtualKey;
